@@ -107,6 +107,38 @@ export function GestureLab({
   const [assistantProposal, setAssistantProposal] = useState<Mapping | null>(null);
   const [isProposing, setIsProposing] = useState<boolean>(false);
 
+  // Method A Custom Movement / Feature options
+  const [customMovements, setCustomMovements] = useState<{id: string; name: string; baseAction: Command; description: string}[]>([]);
+  const [selectedCustomMovementId, setSelectedCustomMovementId] = useState<string | null>(null);
+  const [showAddCustomModal, setShowAddCustomModal] = useState<boolean>(false);
+  const [customName, setCustomName] = useState<string>('');
+  const [customBaseAction, setCustomBaseAction] = useState<Command>('next_slice');
+  const [customDesc, setCustomDesc] = useState<string>('');
+
+  const activeCustom = customMovements.find(cm => cm.id === selectedCustomMovementId);
+
+  const handleAddCustomMovement = () => {
+    if (!customName.trim()) return;
+    const newMovement = {
+      id: 'custom_' + Date.now(),
+      name: customName.trim(),
+      baseAction: customBaseAction,
+      description: customDesc.trim()
+    };
+    setCustomMovements(prev => [...prev, newMovement]);
+    setSelectedCustomMovementId(newMovement.id);
+    setSelectedAction(customBaseAction);
+    if (customDesc.trim() && !description.trim()) {
+      setDescription(`Custom movement: ${customName.trim()} (${customDesc.trim()})`);
+    } else if (!description.trim()) {
+      setDescription(`User custom movement: ${customName.trim()}`);
+    }
+    setCustomName('');
+    setCustomDesc('');
+    setShowAddCustomModal(false);
+    setNotice(`Custom movement "${newMovement.name}" added to Method A registry.`);
+  };
+
   // Step 4: Training & Direct Activation
   const [isTraining, setIsTraining] = useState<boolean>(false);
   const [trainingDone, setTrainingDone] = useState<boolean>(false);
@@ -272,6 +304,10 @@ export function GestureLab({
     setAccessibilityNotes('');
     setGestureType('static');
     setSelectedAction('zoom_in');
+    setSelectedCustomMovementId(null);
+    setShowAddCustomModal(false);
+    setCustomName('');
+    setCustomDesc('');
     setAssistantProposal(null);
     setTrainingDone(false);
   };
@@ -747,22 +783,154 @@ export function GestureLab({
                   </p>
                 </div>
 
-                {/* Option A: Direct Selection */}
+                                {/* Option A: Direct Selection & Custom Movement Option */}
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-gray-600 block mb-2">
-                    Method A: Select from Supported Action Registry
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-600 block">
+                      Method A: Select from Supported Action Registry
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCustomModal(!showAddCustomModal)}
+                      className="text-xs text-teal-700 hover:text-teal-900 font-semibold flex items-center gap-1 cursor-pointer bg-teal-50 px-2.5 py-1 rounded border border-teal-200 transition"
+                    >
+                      <Plus size={13} /> Add Custom Movement / Feature Option
+                    </button>
+                  </div>
                   <select
                     className="w-full"
-                    value={selectedAction}
-                    onChange={e => setSelectedAction(e.target.value as Command)}
+                    value={selectedCustomMovementId || selectedAction}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const foundCustom = customMovements.find(cm => cm.id === val);
+                      if (foundCustom) {
+                        setSelectedCustomMovementId(foundCustom.id);
+                        setSelectedAction(foundCustom.baseAction);
+                      } else {
+                        setSelectedCustomMovementId(null);
+                        setSelectedAction(val as Command);
+                      }
+                    }}
                   >
-                    {commands.map(cmd => (
-                      <option key={cmd} value={cmd}>
-                        {pretty(cmd)}
-                      </option>
-                    ))}
+                    {customMovements.length > 0 && (
+                      <optgroup label="User Custom Movements / Features">
+                        {customMovements.map(cm => (
+                          <option key={cm.id} value={cm.id}>
+                            ★ {cm.name} → {pretty(cm.baseAction)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="Supported Action Registry">
+                      {commands.map(cmd => (
+                        <option key={cmd} value={cmd}>
+                          {pretty(cmd)}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
+
+                  {/* Active Custom Movement Badge */}
+                  {activeCustom && (
+                    <div className="mt-2.5 p-2 bg-teal-100/80 border border-teal-300 rounded text-xs flex justify-between items-center text-teal-900">
+                      <div>
+                        <strong>Custom Feature Active:</strong> "{activeCustom.name}"
+                        {activeCustom.description && <span className="block text-[11px] text-teal-700 mt-0.5">{activeCustom.description}</span>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomMovements(prev => prev.filter(cm => cm.id !== activeCustom.id));
+                          setSelectedCustomMovementId(null);
+                          setSelectedAction('zoom_in');
+    setSelectedCustomMovementId(null);
+    setShowAddCustomModal(false);
+    setCustomName('');
+    setCustomDesc('');
+                        }}
+                        className="text-teal-700 hover:text-rose-700 p-1 cursor-pointer"
+                        title="Remove custom movement"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Add Custom Movement / Feature Option Form */}
+                  {showAddCustomModal && (
+                    <div className="mt-3 p-3.5 bg-white border border-teal-300 rounded-lg shadow-sm space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-1.5">
+                        <strong className="text-xs text-teal-950 flex items-center gap-1.5">
+                          <PlusCircle size={14} className="text-teal-700" /> Define Custom Movement or Feature Option
+                        </strong>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddCustomModal(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-700 block mb-1">
+                          Custom Movement / Feature Name
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full text-xs"
+                          value={customName}
+                          onChange={e => setCustomName(e.target.value)}
+                          placeholder="e.g. Micro Zoom In, Rapid Slice Advance, Dual Finger Pan..."
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-700 block mb-1">
+                          Associated Medical Viewer Action
+                        </label>
+                        <select
+                          className="w-full text-xs"
+                          value={customBaseAction}
+                          onChange={e => setCustomBaseAction(e.target.value as Command)}
+                        >
+                          {commands.map(cmd => (
+                            <option key={cmd} value={cmd}>
+                              {pretty(cmd)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-700 block mb-1">
+                          Movement Description / Clinical Notes (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full text-xs"
+                          value={customDesc}
+                          onChange={e => setCustomDesc(e.target.value)}
+                          placeholder="e.g. User-defined horizontal sweep for sterile image navigation."
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          className="px-2.5 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 text-gray-700 cursor-pointer"
+                          onClick={() => setShowAddCustomModal(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="px-3 py-1 text-xs bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          onClick={handleAddCustomMovement}
+                          disabled={!customName.trim()}
+                        >
+                          <Check size={13} /> Save Movement Feature
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedAction === 'confirm_pending' && (
                     <p className="text-xs text-amber-900 mt-2 bg-amber-100/70 p-2.5 rounded border border-amber-200">
                       <strong>Confirmation Symbol:</strong> When any other gesture requests an action, performing this gesture with ≥10% confidence immediately authorizes and executes the action.
@@ -822,11 +990,11 @@ export function GestureLab({
                   )}
                 </div>
 
-                {/* Summary */}
+                                {/* Summary */}
                 <div className="p-3 bg-teal-50 border border-teal-200 rounded-md text-xs flex justify-between items-center">
                   <span>Selected Mapping:</span>
                   <strong className="text-teal-900 text-sm">
-                    {gestureName} → {pretty(selectedAction)}
+                    {gestureName || 'Current Gesture'} → {activeCustom ? `${activeCustom.name} (${pretty(selectedAction)})` : pretty(selectedAction)}
                   </strong>
                 </div>
 
@@ -856,9 +1024,9 @@ export function GestureLab({
                     <span className="text-gray-500">Gesture Name:</span>
                     <strong>{gestureName}</strong>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-gray-200">
+                                    <div className="flex justify-between py-1 border-b border-gray-200">
                     <span className="text-gray-500">Mapped Command:</span>
-                    <strong className="text-teal-800">{pretty(selectedAction)}</strong>
+                    <strong className="text-teal-800">{activeCustom ? `${activeCustom.name} (${pretty(selectedAction)})` : pretty(selectedAction)}</strong>
                   </div>
                   <div className="flex justify-between py-1 border-b border-gray-200">
                     <span className="text-gray-500">Collected Samples:</span>
@@ -922,10 +1090,10 @@ export function GestureLab({
                       autoPlay
                       playsInline
                       muted
-                      className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
+                      className="absolute inset-0 w-full h-full object-cover" style={{transform:"scaleX(-1)"}}
                     />
                     {currentLiveLandmarks && (
-                      <svg viewBox="0 0 300 260" className="landmarks absolute inset-0 w-full h-full pointer-events-none transform scale-x-[-1]">
+                      <svg viewBox="0 0 300 260" className="landmarks absolute inset-0 w-full h-full pointer-events-none" style={{transform:"scaleX(-1)"}}>
                         {[0,1,2,3,4].map(f => (
                           <polyline
                             key={f}
