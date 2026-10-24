@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "threshold": 0.1,
+    "smoothing": 0.2,
+    "dwell_ms": 300,
+    "cooldown_ms": 650,
+    "sensitivity": 1.35
+  },
+  "mapping": {
+    "gesture_label": "Open palm",
+    "action": "zoom_in",
+    "requires_confirmation": true,
+    "enabled": false,
+    "threshold": null
+  }
+}

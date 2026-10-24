@@ -1,0 +1,9 @@
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
+pydantic>=2.10,<3
+numpy>=1.26,<2
+scikit-learn>=1.6,<2
+opencv-contrib-python>=4.10,<4.12
+mediapipe==0.10.21
+pytest>=8,<10
+httpx>=0.28,<1
